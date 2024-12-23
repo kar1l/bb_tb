@@ -1,0 +1,161 @@
+#Persistent
+#SingleInstance Force
+
+; Use WMI to get the motherboard serial number (unique identifier)
+serial := ""
+for obj in ComObjGet("winmgmts:\\.\root\cimv2").ExecQuery("Select * from Win32_BaseBoard")
+{
+    serial := obj.SerialNumber
+}
+
+; Check if the serial was successfully retrieved
+if (serial = "")
+{
+    MsgBox, Failed to read ID (Serial Number) from WMI.
+    ExitApp
+}
+else
+{
+    ; Copy the HWID to clipboard
+    Clipboard := serial
+    MsgBox, ID has been copied to your clipboard.
+}
+
+; --- Pastebin Comparison Logic ---
+pastebinURL := "https://pastebin.com/raw/xzfvzSRV"  ; Replace with your Pastebin link
+
+; Read HWID list from Pastebin
+HwidList := DownloadHWIDList(pastebinURL)
+if (HwidList = "")
+{
+    MsgBox, Failed to recognize ID.
+    ExitApp
+}
+
+; Compare the user's HWID with the list
+if (InStr(HwidList, serial))
+{
+    MsgBox, ID is authorized, access granted. (Version 2.1.b)
+    ; Run the main script here
+    MsgBox - Shhhh, ww2
+    #SingleInstance, Force
+    #Persistent
+    CoordMode, Pixel, Screen
+    CoordMode, Mouse, Screen
+    SoundBeep 300, 200
+
+    ; Settings
+    pixel_box := 80                    ; Half-width/height of the detection box(doesnt work)
+    box_size := pixel_box * 2          ; Full size of the box (160x160)(doesnt work)
+    pixel_color := 0xff00f6            ; Color to detect
+    pixel_sens := 70                   ; Sensitivity (0-255)
+    cooldown_time := 250               ; Cooldown time in milliseconds
+
+    ; Calculate screen center position
+    centerX := A_ScreenWidth // 2 - box_size // 2
+    centerY := A_ScreenHeight // 2 - box_size // 2
+
+    ; Variables
+    triggerbot_enabled := false        ; Tracks if the triggerbot is active
+    color_detected := false            ; Tracks if the color is currently detected
+    cooldown := false                  ; Tracks cooldown state
+
+    ; Create GUI for transparent box with white borders (150x300)
+    Gui, Color, EEAA99                ; Background color for the groupbox (this is the border color)
+    Gui, Font, S37, Arial Black
+    Gui, Add, GroupBox, w150 h300 cFFB10F BackgroundTrans, ; Transparent inside, white border
+
+    Gui +LastFound +AlwaysOnTop +ToolWindow
+    WinSet, TransColor, EEAA99       ; Set transparency for the background
+    Gui -Caption
+    Gui, Show, 
+
+    ; Create GUI for status display
+    Gui, 2:Font, s10 Italic Bold, Arial  ; Font style and size
+    Gui, 2:Add, Text, cBlack Center w130 h15, - Shhhh, ww2
+    Gui, 2:Add, Text, vTriggerbotStatus cBlack Center w130 h32, Press Z to activate Triggerbot
+
+    ; Set GUI properties
+    Gui, 2:+AlwaysOnTop -Caption -ToolWindow  ; Ensure the window is always on top and has no caption
+    Gui, 2:+Owner  ; Ensures no taskbar entry
+
+    ; Show the GUI window at position (10, 10)
+    Gui, 2:Show, x10 y10 NoActivate  ; Display the GUI window
+
+    ; Optional: Set the GUI color to a background color that will remain visible on the transparent window
+    Gui, 2:Color, FFFFFF  ; Set a black background color (though it won't be visible due to transparency) 
+
+
+
+    ; Keybinds
+    Hotkey, Z, ToggleTriggerbot
+    Return
+
+    ; Toggle Triggerbot
+    ToggleTriggerbot:
+        triggerbot_enabled := !triggerbot_enabled
+        If (triggerbot_enabled) {
+            Gui, Show, NoActivate
+            SetTimer, PixelDetection, 10
+            GuiControl, 2:, TriggerbotStatus, Triggerbot Status: ON
+        } Else {
+            Gui, Hide
+            SetTimer, PixelDetection, Off
+            GuiControl, 2:, TriggerbotStatus, Triggerbot Status: OFF
+        }
+    Return
+
+    ; Pixel Detection Loop
+    PixelDetection:
+        If !triggerbot_enabled
+            Return
+
+        ; Perform pixel search in the defined box
+        PixelSearch, FoundX, FoundY, centerX, centerY, centerX + box_size, centerY + box_size, pixel_color, pixel_sens, Fast RGB
+        If !(ErrorLevel) {
+            ; If the color is found and no cooldown is active
+            If !color_detected && !cooldown {
+                Click
+                color_detected := true
+                cooldown := true
+                SetTimer, ResetCooldown, -%cooldown_time% ; Start cooldown timer
+            }
+        } Else {
+            ; Reset when color is no longer detected
+            color_detected := false
+        }
+    Return
+
+    ; Cooldown Reset
+    ResetCooldown:
+        cooldown := false
+    Return
+
+    ; Exit Script
+    [::  ; Key to exit the script
+    Gui, Destroy
+    Gui, 2:Destroy
+    ExitApp
+
+}
+else
+{
+    MsgBox, Access Denied! ID not authorized.
+    ExitApp
+}
+
+; Function to download the HWID list from Pastebin
+DownloadHWIDList(URL)
+{
+    ; Attempt to download the HWID list from the provided URL
+    URLDownloadToFile, %URL%, %A_Temp%\hwidlist.txt
+    if (FileExist(A_Temp "\hwidlist.txt"))
+    {
+        FileRead, List, %A_Temp%\hwidlist.txt
+        return List
+    }
+    else
+    {
+        return ""
+    }
+}
