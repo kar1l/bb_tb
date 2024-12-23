@@ -35,7 +35,7 @@ if (HwidList = "")
 ; Compare the user's HWID with the list
 if (InStr(HwidList, serial))
 {
-    MsgBox, ID is authorized, access granted. (Version 2.1.2.b)
+    MsgBox, ID is authorized, access granted. (Version 2.2.2.b)
     ; Run the main script here
     MsgBox - Shhhh, ww2
     #SingleInstance, Force
