@@ -65,7 +65,6 @@ if (InStr(HwidList, motherboardSerial))
     }
 
     ; Run the main script here (Triggerbot)
-    MsgBox - Shhhh, ww2
     #SingleInstance, Force
     #Persistent
     CoordMode, Pixel, Screen
@@ -166,7 +165,7 @@ if (InStr(HwidList, motherboardSerial))
 }
 else
 {
-    MsgBox, Access Denied! ID not authorized.
+    MsgBox, ID denied fuck you.
     ExitApp
 }
 
