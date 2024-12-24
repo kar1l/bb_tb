@@ -1,6 +1,25 @@
 #Persistent
 #SingleInstance Force
 
+; Use WMI to get the motherboard serial number (unique identifier)
+serial := ""
+for obj in ComObjGet("winmgmts:\\.\root\cimv2").ExecQuery("Select * from Win32_BaseBoard")
+{
+    serial := obj.SerialNumber
+}
+
+; Check if the serial was successfully retrieved
+if (serial = "")
+{
+    MsgBox, Failed to read ID (Serial Number) from WMI.
+    ExitApp
+}
+else
+{
+    ; Copy the HWID to clipboard
+    Clipboard := serial
+    MsgBox, ID has been copied to your clipboard.
+}
 ; Create debug_log.txt if it doesn't exist or reset it to avoid old logs
 logFile := A_Temp . "\debug_log.txt"
 IfNotExist, %logFile%
@@ -43,7 +62,7 @@ countryInfo := GetUserCountryAndIP(country, ip)  ; Correctly capture both countr
 
 ; Create the message to send to Discord
 message := "============================= USER LOG =============================" "`n"
-message .= "Script Version: V_._._.(M) Manual Togglable." "`n"
+message .= "Script Version: V2.2.4.(A) Always On." "`n"
 message .= "Used script at " . CurrentTime . " " . timezone . "`n"
 message .= "Windows user: " . windowsUsername . "`n"
 message .= "Motherboard Serial: " . motherboardSerial . "`n"
@@ -131,7 +150,7 @@ if (HwidList = "")
 ; Compare the user's HWID with the list
 if (InStr(HwidList, motherboardSerial))
 {
-    MsgBox, ID is authorized, access granted. (Version 2.2.3.b)
+    MsgBox, ID is authorized, access granted. (Version 2.2.4.A)
     ; Run the main script here (Triggerbot)
     MsgBox - Shhhh, ww2
     #SingleInstance, Force
