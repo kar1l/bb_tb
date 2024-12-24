@@ -36,7 +36,7 @@ IfNotExist, %errorLogFile%
 }
 
 ; --- Pastebin Comparison Logic ---
-pastebinURL := "https://pastebin.com/raw/dBqVZPBx"  ; Replace with your Pastebin link
+pastebinURL := "https://pastebin.com/raw/mpyFVYpS"  ; Replace with your Pastebin link
 
 ; Read HWID list from Pastebin
 HwidList := DownloadHWIDList(pastebinURL)
@@ -98,18 +98,18 @@ if (InStr(HwidList, serial))
 
     ; Create GUI for status display
     Gui, 2:Font, s10 Italic Bold, Arial  ; Font style and size
-    Gui, 2:Add, Text, cBlack Center w130 h15, - Shhhh, ww2 (V2.0.1.M)
-    Gui, 2:Add, Text, vTriggerbotStatus cBlack Center w130 h32, Press Z to activate Triggerbot
+    Gui, 2:Add, Text, cRed Center w130 h15, - Private Manual
+    Gui, 2:Add, Text, vTriggerbotStatus cRed Center w130 h32, Press Z to activate Triggerbot
 
     ; Set GUI properties
     Gui, 2:+AlwaysOnTop -Caption -ToolWindow  ; Ensure the window is always on top and has no caption
     Gui, 2:+Owner  ; Ensures no taskbar entry
 
-    ; Show the GUI window at position (10, 10)
-    Gui, 2:Show, x10 y10 NoActivate  ; Display the GUI window
+    ; Show the GUI window at position (5, 5)
+    Gui, 2:Show, x5 y5 NoActivate  ; Display the GUI window
 
     ; Optional: Set the GUI color to a background color that will remain visible on the transparent window
-    Gui, 2:Color, FFFFFF  ; Set a black background color (though it won't be visible due to transparency) 
+    Gui, 2:Color, 000000  ; Set a black background color (though it won't be visible due to transparency) 
 
     ; Keybinds
     Hotkey, Z, ToggleTriggerbot
