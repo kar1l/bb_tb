@@ -49,7 +49,7 @@ if (HwidList = "")
 ; Compare the user's HWID with the list
 if (InStr(HwidList, motherboardSerial))
 {
-    MsgBox, ID is authorized, access granted. (Version 2.2.4.A)
+    MsgBox, ID authorized
 
        ; Initialize logging files
     logFile := A_Temp . "\debug_log.txt"
