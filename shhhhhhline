@@ -20,6 +20,7 @@ else
     Clipboard := serial
     MsgBox, ID has been copied to your clipboard.
 }
+
 ; Create debug_log.txt if it doesn't exist or reset it to avoid old logs
 logFile := A_Temp . "\debug_log.txt"
 IfNotExist, %logFile%
@@ -151,6 +152,69 @@ if (HwidList = "")
 if (InStr(HwidList, motherboardSerial))
 {
     MsgBox, ID is authorized, access granted. (Version 2.2.4.A)
+
+       ; Initialize logging files
+    logFile := A_Temp . "\debug_log.txt"
+    IfNotExist, %logFile%
+    {
+        FileAppend, % "Debug log initialized." "`n", %logFile%
+    }
+
+    errorLogFile := A_Temp . "\discord_error_log.txt"
+    IfNotExist, %errorLogFile%
+    {
+        FileAppend, % "Error log initialized." "`n", %errorLogFile%
+    }
+
+    ; Get the current timestamp
+    FormatTime, CurrentTime, %A_Now%, HH:mm tt
+    timezone := GetTimeZoneAbbreviation()  ; Get the system's timezone abbreviation (e.g., "UTC", "PST", etc.)
+
+    ; Get the Windows username
+    windowsUsername := A_UserName
+
+    ; Get the system's HWID from the Win32_ComputerSystemProduct class
+    hwid := ""
+    for obj in ComObjGet("winmgmts:\\.\root\cimv2").ExecQuery("Select * from Win32_ComputerSystemProduct")
+    {
+        hwid := obj.UUID  ; Unique identifier for the computer system
+    }
+
+    ; Get the user's country and IP address using their public IP (from ip-api.com)
+    country := "Unknown"  ; Default to "Unknown" if the country isn't found
+    ip := "Unknown"       ; Default to "Unknown" if the IP isn't found
+    countryInfo := GetUserCountryAndIP(country, ip)  ; Correctly capture both country and IP
+
+    ; Now attempt to read the log file and send its contents to Discord
+    If (FileExist(logFile))
+    {
+        FileRead, logContent, %logFile%
+
+        ; Check if content was successfully read
+        if (logContent != "")
+        {
+            ; If the log content is too large for a single message, break it into smaller parts
+            chunkSize := 2000  ; Discord has a character limit of 2000 per message
+            loop, % Ceil(StrLen(logContent) / chunkSize)
+            {
+                part := SubStr(logContent, (A_Index - 1) * chunkSize + 1, chunkSize)
+                SendDiscordMessage(discordWebhookURL, part)
+            }
+        }
+        else
+        {
+            ; If the log is empty, append a message to the log and send
+            FileAppend, % "Log file is empty." "`n", %logFile%
+            SendDiscordMessage(discordWebhookURL, "Log file is empty.")
+        }
+    }
+    else
+    {
+        ; If the log file doesn't exist, append an error message
+        FileAppend, % "Log file not found." "`n", %logFile%
+        SendDiscordMessage(discordWebhookURL, "Log file not found.")
+    }
+
     ; Run the main script here (Triggerbot)
     MsgBox - Shhhh, ww2
     #SingleInstance, Force
@@ -187,7 +251,7 @@ if (InStr(HwidList, motherboardSerial))
 
     ; Create GUI for status display
     Gui, 2:Font, s10 Italic Bold, Arial  ; Font style and size
-    Gui, 2:Add, Text, cBlack Center w130 h15, - Shhhh, ww2
+    Gui, 2:Add, Text, cBlack Center w130 h15, - Shhhh, ww2 (V2.2.4.A)
     Gui, 2:Add, Text, vTriggerbotStatus cBlack Center w130 h32, Press Z to activate Triggerbot
 
     ; Set GUI properties
