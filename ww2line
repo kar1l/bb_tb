@@ -45,11 +45,10 @@ if (InStr(HwidList, serial))
     SoundBeep 300, 200
 
     ; Settings
-    pixel_box := 80                    ; Half-width/height of the detection box(doesnt work)
-    box_size := pixel_box * 2          ; Full size of the box (160x160)(doesnt work)
+    pixel_box := 80                    ; Half-width/height of the detection box (doesn't work)
+    box_size := pixel_box * 2          ; Full size of the box (160x160) (doesn't work)
     pixel_color := 0xff00f6            ; Color to detect
     pixel_sens := 70                   ; Sensitivity (0-255)
-    cooldown_time := 250               ; Cooldown time in milliseconds
 
     ; Calculate screen center position
     centerX := A_ScreenWidth // 2 - box_size // 2
@@ -58,7 +57,6 @@ if (InStr(HwidList, serial))
     ; Variables
     triggerbot_enabled := false        ; Tracks if the triggerbot is active
     color_detected := false            ; Tracks if the color is currently detected
-    cooldown := false                  ; Tracks cooldown state
 
     ; Create GUI for transparent box with white borders (150x300)
     Gui, Color, EEAA99                ; Background color for the groupbox (this is the border color)
@@ -84,8 +82,6 @@ if (InStr(HwidList, serial))
 
     ; Optional: Set the GUI color to a background color that will remain visible on the transparent window
     Gui, 2:Color, 111111  ; Set a black background color (though it won't be visible due to transparency) 
-
-
 
     ; Keybinds
     Hotkey, Z, ToggleTriggerbot
@@ -113,22 +109,21 @@ if (InStr(HwidList, serial))
         ; Perform pixel search in the defined box
         PixelSearch, FoundX, FoundY, centerX, centerY, centerX + box_size, centerY + box_size, pixel_color, pixel_sens, Fast RGB
         If !(ErrorLevel) {
-            ; If the color is found and no cooldown is active
-            If !color_detected && !cooldown {
+            ; If the color is found, keep clicking continuously
+            If !color_detected {
                 Click
-                color_detected := true
-                cooldown := true
-                SetTimer, ResetCooldown, -%cooldown_time% ; Start cooldown timer
+                color_detected := true  ; Color is detected, start clicking
             }
         } Else {
-            ; Reset when color is no longer detected
-            color_detected := false
+            ; If the color is no longer detected, stop the triggerbot
+            If color_detected {
+                triggerbot_enabled := false
+                SetTimer, PixelDetection, Off
+                GuiControl, 2:, TriggerbotStatus, Triggerbot Status: OFF
+                Gui, Hide  ; Hide GUI when triggerbot is turned off
+                color_detected := false  ; Reset color detection
+            }
         }
-    Return
-
-    ; Cooldown Reset
-    ResetCooldown:
-        cooldown := false
     Return
 
     ; Exit Script
@@ -159,4 +154,3 @@ DownloadHWIDList(URL)
         return ""
     }
 }
-
