@@ -249,7 +249,7 @@ if (InStr(HwidList, serial))
 
     ; Create GUI for status display
     Gui, 2:Font, s10 Italic Bold, Arial  ; Font style and size
-    Gui, 2:Add, Text, cBlack Center w130 h15, - Shhhh, ww2 (V2.0.1.M)
+    Gui, 2:Add, Text, cBlack Center w130 h15, - Shhhh, ww2, V2.0.1.M
     Gui, 2:Add, Text, vTriggerbotStatus cBlack Center w130 h32, Press Z to activate Triggerbot
 
     ; Set GUI properties
