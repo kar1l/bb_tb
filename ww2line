@@ -240,7 +240,7 @@ if (InStr(HwidList, serial))
     ; Create GUI for transparent box with white borders (150x300)
     Gui, Color, EEAA99                ; Background color for the groupbox (this is the border color)
     Gui, Font, S37, Arial Black
-    Gui, Add, GroupBox, w150 h300 cFFB10F BackgroundTrans, ; Transparent inside, white border
+    Gui, Add, GroupBox, w120 h240 cFFB10F BackgroundTrans, ; Transparent inside, white border
 
     Gui +LastFound +AlwaysOnTop +ToolWindow
     WinSet, TransColor, EEAA99       ; Set transparency for the background
