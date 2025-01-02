@@ -105,7 +105,7 @@ if (InStr(HwidList, serial))
     Gui, 2:+Owner  ; Ensures no taskbar entry
 
     ; Show the GUI window at position (5, 5)
-    Gui, 2:Show, x5 y5 NoActivate  ; Display the GUI window
+    Gui, 2:Show, x5 y950 NoActivate  ; Display the GUI window
 
     ; Optional: Set the GUI color to a background color that will remain visible on the transparent window
     Gui, 2:Color, 000000  ; Set a black background color (though it won't be visible due to transparency) 
